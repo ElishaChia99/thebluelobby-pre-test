@@ -1,35 +1,83 @@
-import { useState, useEffect } from 'react'
-import { getHelloWorld } from "./api";
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+import { HttpMethod, initFetch } from "./utils/fetch";
+const fetchApi = initFetch("http://localhost:3000");
 
-function App() {
-  const [data, setData] = useState('');
+const TaskList = () => {
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
-    getHelloWorld().then((resp) => setData(resp.data))
-  }, [])
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const response = await fetchApi<{ data: [] }>(HttpMethod.GET, '/tasks');
+      console.log(response); // Log the response object
+      setTasks(response.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
+  const createTask = async (description, completed) => {
+    try {
+      const response = await fetchApi<{ data: string }>(HttpMethod.POST, '/tasks', {
+        description,
+        completed,
+      });
+      const newTask = response.data;
+      setTasks((prevTasks) => [...prevTasks, newTask]);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const updateTask = async (id, completed) => {
+    try {
+      await fetchApi<{data: string}>(HttpMethod.PATCH, `/tasks/${id}`, { completed });
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await fetchApi<{data: string}>(HttpMethod.DELETE, `/tasks/${id}`);
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        {data}
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div>
+      <h1>Simple Task Manager App </h1>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const description = e.target.elements.description.value;
+          const completed = false;
+          createTask(description,completed);
+          e.target.reset();
+        }}
+      >
+        <input type="text" name="description" placeholder="Task description" />
+        <button type="submit">Add Task</button>
+      </form>
+      {/* <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>
+            {task.description}
+            <button onClick={() => updateTask(task.id, !task.completed)}>
+              {task.completed ? 'Mark Incomplete' : 'Mark Complete'}
+            </button>
+            <button onClick={() => deleteTask(task.id)}>Delete</button>
+          </li>
+        ))}
+      </ul> */}
+    </div>
+  );
+};
 
-export default App
+export default TaskList;
